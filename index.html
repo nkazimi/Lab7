@@ -16,7 +16,7 @@
       }
 
       #recordIDcontainer {
-        display: none;
+        display: block;
       }
     </style>
   </head>
@@ -24,9 +24,8 @@
     <h1>Endpoint Tester</h1>
 
     <form id="actionForm">
-
       <label for="endpoint">Endpoint:</label>
-      <input type="text" value="http://localhost:3000/posts" id="endpoint">
+      <input type="text" value="http://localhost:3000/posts" id="endpoint" />
       <br />
 
       <label for="action">Action:</label>
@@ -50,20 +49,12 @@
 
       <div>
         <label for="title">Title: </label>
-        <input
-          type="text"
-          name="title"
-          id="title"
-        />
+        <input type="text" name="title" id="title" />
       </div>
 
       <div id="recordIDcontainer">
         <label for="recordID">Record ID: </label>
-        <input
-          type="recordID"
-          name="recordID"
-          id="recordID"
-        />
+        <input type="recordID" name="recordID" id="recordID" />
       </div>
 
       <div>
@@ -79,20 +70,69 @@
 
     <!-- Main Script -->
     <script type="module">
+      const outputElement = document.getElementById('output')
+      const endpointInput = document.getElementById('endpoint')
+      const baseUrl = 'http://localhost:3000/'
+      const recordForm = document.getElementById('recordForm')
+      const recordIDcontainer = document.getElementById('recordIDcontainer')
+      const recordID = document.getElementById('recordID')
+
+      const actionInput = document.getElementById('action')
+      action.addEventListener('change', function (event) {
+        const actionValue = event.currentTarget.value
+        if (actionValue.toLowerCase() === 'create') {
+          recordForm.style.display = 'block'
+        } else {
+          recordForm.style.display = 'none'
+        }
+
+        if (
+          actionValue.toLowerCase() === 'delete' ||
+          actionValue.toLowerCase() === 'update'
+        ) {
+          recordForm.style.display = 'block'
+          recordIDcontainer.style.display = 'block'
+        }
+      })
+
       // This function should fetch all of the data from the given endpoint.
       // From the 4 CRUD actions, this is the READ action, and uses the GET http method.
       // The main difference from fetchOne() will be the URL you request from; check
       // the writeup to view the URL pattern for fetch one and fetch all
-      function fetchAll() {
-        // TODO
+      function fetchAll(value) {
+        const routeStart = value.lastIndexOf('/')
+        const route = value.substring(routeStart + 1)
+
+        fetch(`${baseUrl}${route}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (Array.isArray(data)) {
+              data.forEach((data) => {
+                outputElement.append(JSON.stringify(data))
+              })
+            } else {
+              outputElement.append(JSON.stringify(data))
+            }
+          })
       }
 
       // This function should fetch one entry from the given endpoint.
       // From the 4 CRUD actions, this is the READ action, and uses the GET http method.
       // The main difference from fetchAll() will be the URL you request from; check
       // the writeup to view the URL pattern for fetch one and fetch all
-      function fetchOne() {
-        // TODO
+      function fetchOne(value) {
+        console.log('value', value)
+        const routeStart = value.indexOf('/', 8)
+        const lastSlash = value.lastIndexOf('/')
+
+        const route = value.substring(routeStart + 1, lastSlash)
+        const recordToFetch = value.substring(lastSlash + 1)
+
+        fetch(`${baseUrl}${route}/${recordToFetch}`)
+          .then((response) => response.json())
+          .then((data) => {
+            outputElement.append(JSON.stringify(data))
+          })
       }
 
       // This function should use fetch to create one entry in the given endpoint.
@@ -100,7 +140,22 @@
       // The main difference from updateRecord() will be the URL you send data to; check
       // the writeup to view the URL pattern for create and update
       function createRecord() {
-        // TODO
+        console.log('creating')
+        const authorName = document.getElementById('author').value
+        const title = document.getElementById('title').value
+        const postData = {authorName, title}
+
+        fetch(`${baseUrl}posts`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(postData),
+        })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log('Success:', data)
+        })
       }
 
       // This function should use fetch to update one existing entry in the given endpoint.
@@ -108,66 +163,94 @@
       // The main difference from createRecord() will be the URL you send data to; check
       // the writeup to view the URL pattern for create and update
       function updateRecord() {
-        // TODO
+        const authorName = document.getElementById('author').value
+        const title = document.getElementById('title').value
+        const recordToUpdate = recordID.value
+        const postData = {authorName, title}
+
+        fetch(`${baseUrl}posts/${recordToUpdate}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(postData),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log('Success:', data)
+          })
       }
 
       // This function should use fetch to delete one existing entry in the given endpoint.
       // From the 4 CRUD actions, this is the DELETE action, and uses the DELETE http method.
       // The main difference from fetchOne() will be the HTTP method you use to make your
-      // request; check the writeup to view the URL pattern for get one and delete. THERE IS NO 
+      // request; check the writeup to view the URL pattern for get one and delete. THERE IS NO
       // delete all, only delete one.
       function deleteRecord() {
-        // TODO
+        const recordToDelete = recordID.value
+
+        fetch(`${baseUrl}posts/${recordToDelete}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log('Success:', data)
+          })
       }
 
       window.addEventListener('DOMContentLoaded', () => {
         // Action Form Event Listener
         document
-          .getElementById("actionForm")
-          .addEventListener("submit", event => {
-            event.preventDefault();
-            let command = document.getElementById('action').value;
+          .getElementById('actionForm')
+          .addEventListener('submit', (event) => {
+            event.preventDefault()
+            const endpointValue = endpointInput.value
+            outputElement.innerHTML = null
 
+            let command = document.getElementById('action').value
             switch (command) {
-              case "List All":
-                fetchAll();
-                break;
-              case "List One":
-                fetchOne();
-                break;
-              case "Create":
-                createRecord('show');
-                break;
-              case "Update":
-                updateRecord('show');
-                break;
-              case "Delete":
-                deleteRecord();
-                break;
+              case 'List All':
+                fetchAll(endpointValue)
+                break
+              case 'List One':
+                fetchOne(endpointValue)
+                break
+              case 'Create':
+                createRecord('show')
+                break
+              case 'Update':
+                updateRecord('show')
+                break
+              case 'Delete':
+                deleteRecord()
+                break
               default:
-                alert("Error: Illegal Action");
+                alert('Error: Illegal Actiona')
             }
-          });
+          })
 
         // Record Form Event Listener
         document
-          .getElementById("recordForm")
-          .addEventListener("submit", event => {
-            event.preventDefault();
-            let command = document.getElementById('action').value;
-            
+          .getElementById('recordForm')
+          .addEventListener('submit', (event) => {
+            event.preventDefault()
+            let command = document.getElementById('action').value
+
             switch (command) {
-              case "Create":
-                createRecord('submit');
-                break;
-              case "Update":
-                updateRecord('submit');
-                break;
+              case 'Create':
+                createRecord('submit')
+                break
+              case 'Update':
+                updateRecord('submit')
+                break
               default:
-                alert("Error: Illegal Action");
+                alert('Error: Illegal Actionb')
             }
-          });
-      });
+          })
+      })
     </script>
   </body>
 </html>
